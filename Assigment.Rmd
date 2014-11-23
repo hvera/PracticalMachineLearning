@@ -1,0 +1,106 @@
+---
+    title: "Practical Machine Learning - Assigment"
+author: "Hernando Vera"
+date: "November 20, 2014"
+output:
+    html_document:
+    keep_md: yes
+---
+    
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+## Data 
+
+The training data for this project are available here: 
+    
+    https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+    
+    https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment. 
+
+## Loading the data
+
+Load the source data into the ./data directory
+
+```{r echo=TRUE}
+library(caret)
+library(corrplot)
+library(randomForest)
+set.seed(3393)
+trainingURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testingURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+trainingFilename <- "data/pml-training.csv"
+testingFilename <- "data/pml-testing.csv"
+```
+
+```{r loadfiles, eval=FALSE}
+download.file(trainingURL, trainingFilename, method="wget")
+download.file(testingURL, testingFilename, method="wget")
+```
+
+## Clean the data
+
+Handle the empty cells and cells with excel formula errors and remove unneeded columns. Remove columns with NAs and columns that won't be used as predictors.
+
+```{r echo=TRUE}
+emptyCells <- c("", "NA", "#DOV0!")
+trainingData <- read.csv(trainingFilename, na.strings = emptyCells)
+testingData <- read.csv(testingFilename, na.strings = emptyCells)
+
+trainingDataNAs <- apply(trainingData, 2, function(x) {sum(is.na(x))})
+trainingData <- trainingData[, which(trainingDataNAs == 0)]
+trainingData <- trainingData[8:length(trainingData)]
+
+testingDataNAs <- apply(testingData, 2, function(x) {sum(is.na(x))})
+testingData <- testingData[, which(testingDataNAs == 0)]
+testingData <- testingData[8:length(testingData)]
+```
+
+## Select the training and testing data an prepare the model
+Split the training data into a training set and a testing set. Reserve 40% of the data for testing.
+```{r echo=TRUE}
+trainFlags <- createDataPartition(trainingData$classe, p=.60, list=FALSE)
+training <- trainingData[trainFlags,]
+testing <- trainingData[-trainFlags,]
+```
+
+We select a random forest method due to the number of variables and the ability to handle unbalanced data. First check to see if any variables are strongly related with each other by checking correlation.
+
+```{r echo=TRUE}
+m <- cor(training[, -length(training)])
+corrplot(m, order = "FPC", method="circle", type="lower", tl.cex=0.8, tl.col=rgb(0,0,0))
+```
+
+The plot does not show many positive or negativly correlated variables, so we are safe in using all of them in our model.
+
+```{r echo=TRUE}
+model <- randomForest(classe ~., data=training)
+model
+```
+
+## Cross-validation
+
+Now we compare the prediction results with the 40% of the data that was reserved for testing.
+
+```{r echo=TRUE}
+confMatrix <- confusionMatrix(predict(model,
+                                      newdata=testing),
+                              testing$classe)
+confMatrix
+```
+
+The model presents a 99.5 prediction accuracy.
+
+## Predictions
+
+The testing data set was prepared and cleaned using the same procedure that was used on the training data.
+
+```{r echo=TRUE}
+predictTests <- predict(model, testingData)
+predictTests
+```
