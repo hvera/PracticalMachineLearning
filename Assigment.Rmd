@@ -104,3 +104,5 @@ The testing data set was prepared and cleaned using the same procedure that was 
 predictTests <- predict(model, testingData)
 predictTests
 ```
+
+

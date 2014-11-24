@@ -177,5 +177,16 @@ The model presents a 99.5 prediction accuracy.
 
 The testing data set was prepared and cleaned using the same procedure that was used on the training data.
 
+
+```r
 predictTests <- predict(model, testingData)
-predictTest
+predictTests
+```
+
+```
+##  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
+##  B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
+## Levels: A B C D E
+```
+
+
